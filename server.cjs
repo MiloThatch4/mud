@@ -31,6 +31,23 @@ function mapSocketsToUsernames(socketList) {
 	return ret;
 }
 
+
+/**
+ * TODO:
+ * When the user gives a room name, make a new room.
+ * Each room could be an object that contains the world/game state.
+ * This room object would start with some default data and would be sent to the user on join.
+ */
+// let rooms = ["room 1", "room 2"];
+
+class Room {
+	constructor(name) {
+		this.name = name;
+	}
+}
+
+let rooms = [];
+
 //Every time a client connects (visits the page) this function(socket) {...} gets executed.
 //The socket is a different object each time a new client connects.
 io.on("connection", function(socket) {
@@ -38,12 +55,20 @@ io.on("connection", function(socket) {
 
 	//socket.data is a convenience object where we can store application data
 	socket.data.name = randomFromList(adjectives) +" "+ randomFromList(nouns);
+/*
+	// Place the new user/socket in a room
+	let randomRoomIndex = Math.round(Math.random());
+	socket.join(rooms[randomRoomIndex]);
+
+	console.log('joined ' + rooms[randomRoomIndex]);
+*/
 
 	socket.on("disconnect", function() {
 		//This particular socket connection was terminated (probably the client went to a different page
 		//or closed their browser).
 		console.log("Somebody disconnected.");
 		io.emit("updateUserList", mapSocketsToUsernames(io.sockets.sockets));
+		// TODO: remove the user from their room and if the room is empty, delete the room.
 	});
 
 	socket.on("directMessage", function(targetUser, text) {
@@ -80,14 +105,35 @@ io.on("connection", function(socket) {
 		}
 	});
 
-	socket.on("sendChat", function(chatMessage) {
-		let m = socket.data.name + " just said: " + chatMessage;
-		messages.push(m);
-		console.log(m);
-		io.emit("messageSent", m);
+	socket.on("joinRoom", function(roomName, callback) {
+		socket.data.roomName = roomName; //TODO: Be wary of ANY data coming from the client.
+
+
+		
+		// Place the new user/socket in a room
+		socket.join(roomName);
+
+		console.log('joined ' + roomName);
+
+
+		// the "callback" below tells the client "true" and gives it the messages variable (?)
+		// callback(true, messages);
+
+		// io.emit("updateUserList", mapSocketsToUsernames(io.sockets.sockets));
+		// let h = username + " logged in!";
+		// messages.push(h);
+		// io.emit("messageSent", h);
 	});
 
-
+	socket.on("sendChat", function(chatMessage) {
+		console.log(socket.rooms)
+		// let currentRoom = Array.from(socket.rooms)[0]; // The users can only be in one room at a time, so just take the first room that they are in
+		let currentRoom = socket.data.roomName;
+		let m = socket.data.name + " just said: " + chatMessage + " from room: " + currentRoom;
+		messages.push(m);
+		console.log(m);
+		io.to(currentRoom).emit("messageSent", m);
+	});
 });
 
 server.listen(8080, function() {

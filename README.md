@@ -1,5 +1,8 @@
-# Vue 3 + Vite
+# MUD (Multi-User Dungeon) — CS365 Final Project
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
-
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+Setup: <br>
+- Clone the repository
+- Run `npm install` to install all of the required packages
+- Make sure nodemon is installed, `npm install -g nodemon`
+- Run `nodemon server.cjs` to start the socket.io server
+- Run `npm run dev` in a separate terminal to start the main web server

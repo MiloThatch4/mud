@@ -17,6 +17,9 @@ let messages = []; //a full list of all chat made on this server
 let adjectives = ["Best", "Happy", "Creepy", "Sappy"];
 let nouns = ["Programmer", "Developer", "Web dev", "Student", "Person"];
 
+const MAX_USERS_PER_ROOM = 4;
+
+
 function randomFromList(list) {
 	let i = Math.floor(Math.random() * list.length);
 	return list[i];
@@ -38,30 +41,21 @@ function mapSocketsToUsernames(socketList) {
  * Each room could be an object that contains the world/game state.
  * This room object would start with some default data and would be sent to the user on join.
  */
-// let rooms = ["room 1", "room 2"];
 
-class Room {
-	constructor(name) {
-		this.name = name;
-	}
-}
-
-let rooms = [];
+let rooms = [
+	// {
+	// 	name: 'testRoom',
+	// 	users: []
+	// }
+];
 
 //Every time a client connects (visits the page) this function(socket) {...} gets executed.
 //The socket is a different object each time a new client connects.
 io.on("connection", function(socket) {
-	console.log("Somebody connected.");
+	// console.log("Somebody connected.");
 
 	//socket.data is a convenience object where we can store application data
 	socket.data.name = randomFromList(adjectives) +" "+ randomFromList(nouns);
-/*
-	// Place the new user/socket in a room
-	let randomRoomIndex = Math.round(Math.random());
-	socket.join(rooms[randomRoomIndex]);
-
-	console.log('joined ' + rooms[randomRoomIndex]);
-*/
 
 	socket.on("disconnect", function() {
 		//This particular socket connection was terminated (probably the client went to a different page
@@ -108,21 +102,28 @@ io.on("connection", function(socket) {
 	socket.on("joinRoom", function(roomName, callback) {
 		socket.data.roomName = roomName; //TODO: Be wary of ANY data coming from the client.
 
-
-		
 		// Place the new user/socket in a room
 		socket.join(roomName);
+		console.log(socket.data.name + ' joined ' + roomName);
 
-		console.log('joined ' + roomName);
+		let roomToJoin = rooms.filter(room => room.name == roomName)[0];
+		if (roomToJoin) {
+			if (roomToJoin.users.length >= MAX_USERS_PER_ROOM) {
+				callback(false, "That room is full!");
+				return;
+			}
 
-
-		// the "callback" below tells the client "true" and gives it the messages variable (?)
-		// callback(true, messages);
-
-		// io.emit("updateUserList", mapSocketsToUsernames(io.sockets.sockets));
-		// let h = username + " logged in!";
-		// messages.push(h);
-		// io.emit("messageSent", h);
+			roomToJoin.users.push(socket);
+			// console.log(roomToJoin.users.map(socket => socket.data.name));
+		} else {
+			let newRoom = {
+				name: roomName,
+				users: [socket]
+			}
+			rooms.push(newRoom);
+		}
+		// the "callback" below calls the method that the client side gave
+		callback(true, "Joined successfully");
 	});
 
 	socket.on("sendChat", function(chatMessage) {

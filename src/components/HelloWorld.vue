@@ -19,7 +19,9 @@ export default {
 			// this.inputText = "";
 		},
     joinRoom() {
-      socket.emit("joinRoom", "myTestRoom");
+      socket.emit("joinRoom", "myTestRoom" + Math.round(Math.random()), (success, message) => {
+        console.log(message);
+      });
     }
   },
 	mounted() {

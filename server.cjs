@@ -53,14 +53,46 @@ let rooms = [
 //The socket is a different object each time a new client connects.
 io.on("connection", function(socket) {
 	// console.log("Somebody connected.");
+	
 
 	//socket.data is a convenience object where we can store application data
 	socket.data.name = randomFromList(adjectives) +" "+ randomFromList(nouns);
+
+
+	// Leave the current room
+	function leaveRoomInternal(socket){
+		const roomName = socket.data.roomName;
+		if (!roomName) return;
+
+		// Find room by name
+		const roomIndex = rooms.findIndex(r => r.name === roomName);
+		if (roomIndex === -1) {
+			socket.data.roomName = null;
+			return;
+		}
+
+		const room = rooms[roomIndex];
+
+		// Remove this user from the room
+		room.users = room.users.filter(s => s.id !== socket.id);
+
+		socket.leave(roomName);
+		console.log(socket.data.name + " left " + roomName);
+
+		// TODO (optional): If the room is empty, delete the room
+
+		socket.data.roomName = null;
+	}
+
 
 	socket.on("disconnect", function() {
 		//This particular socket connection was terminated (probably the client went to a different page
 		//or closed their browser).
 		console.log("Somebody disconnected.");
+
+		// Remove user from their room
+		leaveRoomInternal(socket);
+
 		io.emit("updateUserList", mapSocketsToUsernames(io.sockets.sockets));
 		// TODO: remove the user from their room and if the room is empty, delete the room.
 	});
@@ -126,6 +158,15 @@ io.on("connection", function(socket) {
 		callback(true, "Joined successfully");
 	});
 
+	// Handle leave room request
+	socket.on("leaveRoom", function(callback){
+		leaveRoomInternal(socket);
+
+		if (callback) {
+			callback(true, "Left room successfully.");
+		}
+	});
+
 	socket.on("sendChat", function(chatMessage) {
 		console.log(socket.rooms)
 		// let currentRoom = Array.from(socket.rooms)[0]; // The users can only be in one room at a time, so just take the first room that they are in
@@ -134,6 +175,25 @@ io.on("connection", function(socket) {
 		messages.push(m);
 		console.log(m);
 		io.to(currentRoom).emit("messageSent", m);
+	});
+
+
+	// List players in the current room
+	socket.on("listPlayers", function(callback){
+		const roomName = socket.data.roomName;
+		if (!roomName){
+			if (callback) callback(false, "You are not in a room.", []);
+			return;
+		}
+
+		const room = rooms.find(r => r.name === roomName);
+		if (!room) {
+			if (callback) callback(false, "Room not found.", []);
+			return;
+		}
+
+		const playerNames = room.users.map (s => s.data.name);
+		if (callback) callback(true, playerNames);
 	});
 });
 
